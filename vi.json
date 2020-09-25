@@ -1,0 +1,65 @@
+{
+    "explore": "Khám Phá",
+    "explore-desc": "Tìm Kiếm Máy Chủ Mới, Emojis Và Nhiều Điều Mới!",
+    "servers": "Máy Chủ",
+    "join-server": "Tham Gia Máy Chủ",
+    "themes": "Hình Nền",
+    "emoji-packs": "Gói Emoji",
+    "message-styles": "Kiểu Tin Nhắn",
+    "created-by": "Tạo Bởi",
+    "filter": "Bộ Lọc",
+    "sort-by": "Sắp Xếp Theo",
+
+    "all": "Tất Cả",
+    "verified": "Đã Xác Minh",
+    "most-users": "Phần Lớn Người Dùng",
+    "least-users": "Người Dùng Ít Nhất",
+    "alphabetical": "Theo Bảng Chữ Cái",
+    "date-added": "Ngày Thêm Vào",
+
+    "explore-support-message": "Hỗ trợ Nertivia bằng cách quyên góp tiền vào. Bạn sẽ nhận được huy hiệu người ủng hộ (Supporter Badge) và nhiều tính năng mới hơn trong tương lai.",
+    "support-message-settings": "Hỗ trợ Nertivia. Bạn Sẽ Được Nhận Huy Hiệu.",
+    "donate": "Ủng Hộ",
+
+    "join": "Tham Gia",
+    "join-card-message": "Tham Gia Máy Chủ Nertivia Chính Thức",
+    "coming-soon!": "Sắp Tới!",
+
+    "joined": "Đã Tham Gia",
+    "apply": "Áp Dụng",
+    "unapply": "Không Áp Dụng",
+    "copy-link": "Sao Chép Đường Dẫn",
+
+    "clone": "Nhân Bản",
+    "cloning": "Đang Nhân Bản...",
+    "cloned": "Đã Nhân Bản",
+    "theme-safe-message": "Các Hình Nền Dưới Đây Là Đã An Toàn Và Được Xem Xét Bằng Thủ Công.",
+
+    "friends": "Bạn Bè",
+    "pending": "Đang Chờ Xử Lí",
+    "recents": "Gần Đây",
+
+    "online": "Trực Tuyến",
+    "away": "Chờ",
+    "busy": "Bận",
+    "looking-to-play": " Đang Tìm Cách Chơi",
+    "offline": "Vô Hình",
+
+    "add-friends-message": "Thêm Vài Người Bạn.",
+    "offline-message": "Tất Cả Bạn Bè Của Bạn Đang Ngoại Tuyến.",
+    "saved-notes": "Đã Lưu Các Ghi chú",
+    "select-person-message": "Chọn Một NGười Để Nhắn Tin!",
+    "message": "Message",
+
+    "add-server": "Thêm Máy Chủ",
+    "add-friend": "Thêm Bạn Bè",
+    "add-friend-message": " Thêm Bạn Bè Bằng Cách Ghi Tên Của Họ Và Thẻ.",
+    "adding": "Đang Thêm...",
+    "create": "Tạo",
+
+    "new-messages": "Tin Nhắn Mới",
+
+    "today-at": "Hôm Nay Lúc {0}",
+    "yesterday-at": "Hôm Qua Lúc {0}",
+    "send-a-message": "Gửi Tin Nhắn"
+}

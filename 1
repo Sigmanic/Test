@@ -120,38 +120,39 @@ else
 end
 ConsolePrint("WHITE","Table",UtilitiesConfig)
 
+local MinimizeConfig = {
+    [true] = {
+        fps = 10,
+        QualityLevel = Enum.QualityLevel.Level01,
+        PhysicsThrottle = Enum.EnviromentalPhysicsThrottle.Disabled,
+        Technology = Enum.Technology.Compatibility,
+        GlobalShadows = false,
+        Set3dRenderingEnabled = false,
+    }
+}
 getgenv().MinimizeClient = getgenv().MinimizeClient or function(boolean)
-    local boolean = boolean or (boolean == nil and true)
-    if not getgenv().FirstTime then
-        getgenv().FirstTime = {
+    local boolean = if type(boolean) == "boolean" then boolean else true
+    if not MinimizeConfig[false] then
+        MinimizeConfig[false] = {
+            fps = 60,
             GlobalShadow = Lighting.GlobalShadows,
             PhysicsThrottle = settings().Physics.PhysicsEnvironmentalThrottle,
-            OldQuality = settings():GetService("RenderSettings").QualityLevel,
-            TechLight = gethiddenproperty(Lighting, "Technology"),
+            QualityLevel = settings():GetService("RenderSettings").QualityLevel,
+            Technology = if gethiddenproperty then gethiddenproperty(Lighting, "Technology") else Enum.Technology.ShadowMap,
+            Set3dRenderingEnabled = true,
         }
     end
-    if boolean then
-        pcall(function()
-            setfpscap(10)
-        end)
-        settings():GetService("RenderSettings").QualityLevel = Enum.QualityLevel.Level01
-        settings().Physics.PhysicsEnvironmentalThrottle = Enum.EnviromentalPhysicsThrottle.Disabled
-        if sethiddenproperty then
-            sethiddenproperty(Lighting, "Technology",Enum.Technology.Compatibility)
-        end
-        Lighting.GlobalShadows = boolean
-    else
-        pcall(function()
-            setfpscap(60)
-        end)
-        settings():GetService("RenderSettings").QualityLevel = getgenv().FirstTime.OldQuality
-        settings().Physics.PhysicsEnvironmentalThrottle = getgenv().FirstTime.PhysicsThrottle
-        if sethiddenproperty then
-            sethiddenproperty(Lighting, "Technology", getgenv().FirstTime.TechLight)
-        end
-        Lighting.GlobalShadows = getgenv().FirstTime.GlobalShadow
+    local Config = MinimizeConfig[boolean]
+    pcall(function()
+        setfpscap(Config.fps)
+    end)
+    settings():GetService("RenderSettings").QualityLevel = Config.QualityLevel
+    settings().Physics.PhysicsEnvironmentalThrottle = Config.PhysicsThrottle
+    if sethiddenproperty then
+        sethiddenproperty(Lighting, "Technology", Config.Technology)
     end
-    game:GetService("RunService"):Set3dRenderingEnabled(not boolean)
+    Lighting.GlobalShadows = Config.GlobalShadow
+    game:GetService("RunService"):Set3dRenderingEnabled(Config.Set3dRenderingEnabled)
     for i,v in next, Lighting:GetChildren() do
         if v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("ColorCorrectionEffect") or v:IsA("BloomEffect") or v:IsA("DepthOfFieldEffect") and v.Enabled ~= not boolean then
             v.Enabled = not boolean
@@ -160,27 +161,23 @@ getgenv().MinimizeClient = getgenv().MinimizeClient or function(boolean)
 end
 
 function CheckPlace()
-    return (game.PlaceId == 5591597781)
+    return if not GameSpoof then (game.PlaceId == 5591597781) else if GameSpoof == "Ingame" then true else false
 end
 
 local Folder = Instance.new("Folder")
 Folder.Parent = ReplicatedStorage
 Folder.Name = "Map"
 StratXLibrary.LowGraphics = function(bool)
+    local Location = if CheckPlace() then "Map" else "Environment"
     if bool then
         repeat task.wait() until LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character:FindFirstChild("Humanoid")
         LocalPlayer.Character.Humanoid.PlatformStand = true
         LocalPlayer.Character.HumanoidRootPart.Anchored = true
-        if CheckPlace() then
-            for i,v in next, Workspace.Map:GetChildren() do
-                if v.Name ~= "Paths" then
-                    v.Parent = Folder
-                end
+        for i,v in next, Workspace[Location]:GetChildren() do
+            if Location == "Map" and v.Name == "Paths" then
+                continue
             end
-        else
-            for i,v in next, Workspace.Environment:GetChildren() do
-                v.Parent = Folder
-            end
+            v.Parent = Folder
         end
     else
         if not (CheckPlace() and getgenv().DefaultCam ~= 1) then
@@ -189,11 +186,11 @@ StratXLibrary.LowGraphics = function(bool)
             LocalPlayer.Character.HumanoidRootPart.Anchored = false
         end
         for i,v in next, Folder:GetChildren() do
-            v.Parent = Workspace[CheckPlace() and "Map" or "Environment"]
+            v.Parent = Workspace[Location]
         end
     end
     MinimizeClient(bool)
-    prints((bool and "Enabled" or "Disabled").." Low Graphics Mode")
+    prints((if bool then "Enabled" else "Disabled").." Low Graphics Mode")
 end
 
 function SaveUtilitiesConfig()
@@ -339,8 +336,238 @@ maintab:Section("Current Place: "..(CheckPlace() and "Ingame" or "Lobby"))
 UI.UtilitiesTab = UILibrary:CreateWindow("Utilities")
 local UtilitiesTab = UI.UtilitiesTab
 
-local CountNum = 0
+if CheckPlace() then
+    if #Players:GetChildren() > 1 and getgenv().Multiplayer["Enabled"] == false then
+        TeleportService:Teleport(3260590327, LocalPlayer)
+    end
+    --Disable Auto Skip Feature
+    local AutoSkipCheck = (LocalPlayer.PlayerGui.RoactUniversal.Settings.window.scrollingFrame.Unknown["Auto Skip"].button.toggle.content.textLabel.Text == "Enabled")
+    if AutoSkipCheck then
+        RemoteFunction:InvokeServer("Settings","Update","Auto Skip",false)
+    end
+    --Check if InWave or not
+    StratXLibrary.TimerConnection = ReplicatedStorage.StateReplicators.ChildAdded:Connect(function(object)
+        if object:GetAttribute("Duration") and object:GetAttribute("Duration") == 5 then
+            TimerCheck = true
+        elseif object:GetAttribute("Duration") and object:GetAttribute("Duration") > 5 then
+            TimerCheck = false
+        end
+    end)
+    
+    task.spawn(function()
+        repeat task.wait() until Workspace.Map:FindFirstChild("Environment"):FindFirstChild("SpawnLocation")
+        local Part = Instance.new("Part")
+        Part.Size = Vector3.new(10, 2, 10)
+        Part.CFrame = Workspace.Map.Environment:FindFirstChild("SpawnLocation").CFrame + Vector3.new(0, 30, 0)
+        Part.Anchored = true
+        Part.CanCollide = true
+        Part.Transparency = 1
+        Part.Parent = Workspace
+        Part.Name = "PlatformPart"
+        StratXLibrary.PlatformPart = Part
 
+        local OutlineBox = Instance.new("SelectionBox")
+        OutlineBox.Parent = Part
+        OutlineBox.Adornee = Part
+        OutlineBox.LineThickness = 0.05
+
+        repeat task.wait() until LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character:FindFirstChild("Humanoid")
+        LocalPlayer.Character.Humanoid.PlatformStand = true
+        LocalPlayer.Character.HumanoidRootPart.Anchored = true
+        LocalPlayer.Character.HumanoidRootPart.CFrame = Part.CFrame + Vector3.new(0, 3.5, 0)
+    end)
+    task.spawn(function()
+        CurrentCamera.CameraType = Enum.CameraType.Scriptable
+        local FOV = CurrentCamera.FieldOfView
+        local movePosition = Vector2.new(0, 0)
+        local moveDirection = Vector3.new(0, 0, 0)
+        local targetMovePosition = movePosition
+        local lastRightButtonDown = Vector2.new(0, 0)
+        local rightMouseButtonDown,sprinting = false,false
+        local keysDown,moveKeys = {}, {
+            [Enum.KeyCode.D] = Vector3.new(1, 0, 0),
+            [Enum.KeyCode.A] = Vector3.new(-1, 0, 0),
+            [Enum.KeyCode.S] = Vector3.new(0, 0, 1),
+            [Enum.KeyCode.W] = Vector3.new(0, 0, -1),
+            [Enum.KeyCode.E] = Vector3.new(0, 1, 0),
+            [Enum.KeyCode.Q] = Vector3.new(0, -1, 0)
+        }
+        function Tween(Value,Time)
+            pcall(function()
+                if Value == CurrentCamera.FieldOfView then
+                    return
+                end
+                game:GetService("TweenService"):Create(CurrentCamera, TweenInfo.new(Time, Enum.EasingStyle.Linear), {FieldOfView = Value}):Play() 
+                task.wait(Time)
+            end)
+        end
+        UserInputService.InputChanged:connect(function(Y)
+            if Y.UserInputType == Enum.UserInputType.MouseMovement then
+                movePosition = movePosition + Vector2.new(Y.Delta.x, Y.Delta.y)
+            end
+        end)
+        function CalculateMovement()
+            local Z = Vector3.new(0, 0, 0)
+            for i,v in next, keysDown do
+                Z = Z + (moveKeys[i] or Vector3.new(0, 0, 0))
+            end
+            return Z
+        end
+        function Input(InputTyped)
+            if moveKeys[InputTyped.KeyCode] then
+                if InputTyped.UserInputState == Enum.UserInputState.Begin then
+                    keysDown[InputTyped.KeyCode] = true
+                elseif InputTyped.UserInputState == Enum.UserInputState.End then
+                    keysDown[InputTyped.KeyCode] = nil
+                end
+            else
+                if InputTyped.UserInputState == Enum.UserInputState.Begin then
+                    if InputTyped.UserInputType == Enum.UserInputType.MouseButton2 and UtilitiesConfig.Camera == 3 then
+                        rightMouseButtonDown = true
+                        lastRightButtonDown = Vector2.new(Mouse.X, Mouse.Y)
+                        UserInputService.MouseBehavior = Enum.MouseBehavior.LockCurrentPosition
+                    elseif InputTyped.KeyCode == Enum.KeyCode.Z then
+                        FOV = 20
+                    elseif InputTyped.KeyCode == Enum.KeyCode.LeftShift then
+                        sprinting = true
+                    end
+                else
+                    if InputTyped.UserInputType == Enum.UserInputType.MouseButton2 then
+                        rightMouseButtonDown = false
+                        UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+                    elseif InputTyped.KeyCode == Enum.KeyCode.Z then
+                        FOV = 70
+                    elseif InputTyped.KeyCode == Enum.KeyCode.LeftShift then
+                        sprinting = false
+                    end
+                end
+            end
+        end
+        Mouse.WheelForward:connect(function()
+            CurrentCamera.CoordinateFrame = CurrentCamera.CoordinateFrame * CFrame.new(0, 0, -5)
+        end)
+        Mouse.WheelBackward:connect(function()
+            CurrentCamera.CoordinateFrame = CurrentCamera.CoordinateFrame * CFrame.new(-0, 0, 5)
+        end)
+        UserInputService.InputBegan:connect(Input)
+        UserInputService.InputEnded:connect(Input)
+        game:GetService("RunService").RenderStepped:Connect(function()
+            if UtilitiesConfig.Camera == 3 then
+                targetMovePosition = movePosition
+                CurrentCamera.CoordinateFrame = CFrame.new(CurrentCamera.CoordinateFrame.p) * CFrame.fromEulerAnglesYXZ(-targetMovePosition.Y / 300,-targetMovePosition.X / 300,0) * CFrame.new(CalculateMovement() * (({[true] = 3})[sprinting] or .5))
+                Tween(FOV,.1)
+                if rightMouseButtonDown then
+                    UserInputService.MouseBehavior = Enum.MouseBehavior.LockCurrentPosition
+                    movePosition = movePosition - (lastRightButtonDown - Vector2.new(Mouse.X, Mouse.Y))
+                    lastRightButtonDown = Vector2.new(Mouse.X, Mouse.Y)
+                end
+            end
+        end)
+
+        local ModeSection = maintab:Section("Mode: Voting")
+        task.spawn(function()
+            repeat task.wait() until GetGameInfo():GetAttribute("Difficulty")
+            ModeSection.Text = "Mode: "..GetGameInfo():GetAttribute("Difficulty")
+        end)
+        maintab:Section("Map: "..ReplicatedStorage.State.Map.Value)
+        maintab:Section("Tower Info:")
+        StratXLibrary.TowerInfo = {}
+        for i,v in next, RemoteFunction:InvokeServer("Session","Search","Inventory.Troops") do
+            if v.Equipped then
+                StratXLibrary.TowerInfo[i] = {maintab:Section(i.." : 0"), 0, i}
+            end
+        end
+        UI.ActInfo = maintab:DropSection("Actions Info")
+
+        if UtilitiesConfig.Camera == 1 then
+            LocalPlayer.Character.Humanoid.PlatformStand = false
+            LocalPlayer.Character.HumanoidRootPart.Anchored = false
+            CurrentCamera.CameraSubject = LocalPlayer.Character.Humanoid
+            CurrentCamera.CameraType = "Follow"
+        elseif UtilitiesConfig.Camera == 2 then
+            LocalPlayer.Character.Humanoid.PlatformStand = true
+            LocalPlayer.Character.HumanoidRootPart.Anchored = true
+            LocalPlayer.DevCameraOcclusionMode = "Invisicam"
+            CurrentCamera.CameraType = "Follow"
+        end
+
+        repeat task.wait() until Workspace:FindFirstChild("NPCs")
+        task.spawn(function()
+            while true do
+                for i,v in next, Workspace.NPCs:GetChildren() do
+                    if UtilitiesConfig.Camera ~= 2 then
+                        repeat wait() until UtilitiesConfig.Camera == 2
+                    end
+                    if v:FindFirstChild("HumanoidRootPart") and v:FindFirstChild("HumanoidRootPart").CFrame.Y > -5 then
+                        repeat
+                            if UtilitiesConfig.Camera == 2 then
+                                CurrentCamera.CameraSubject = v:FindFirstChild("HumanoidRootPart")
+                            end
+                            task.wait() 
+                        until not v:FindFirstChild("HumanoidRootPart")
+                    --[[else
+                        CurrentCamera.CameraSubject = LocalPlayer.Character:FindFirstChild("Humanoid")]]
+                    end
+                end
+                task.wait(.5)
+            end
+        end) 
+        --End Of Match
+        local MatchGui = LocalPlayer.PlayerGui.RoactGame.Rewards.content.gameOver
+        MatchGui:GetPropertyChangedSignal("Visible"):Connect(function()
+            prints("Match Ended")
+            if AutoSkipCheck then
+                RemoteFunction:InvokeServer("Settings","Update","Auto Skip",true)
+            end
+            task.wait(1)
+            if UtilitiesConfig.Webhook.Enabled then
+                task.wait(1.3)
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/Sigmanic/Strategies-X/main/Webhook.lua", true))()
+                prints("Sent Webhook Log")
+            end
+            if not StratXLibrary.RejoinLobby then
+                repeat task.wait() until StratXLibrary.RejoinLobby
+            end
+            task.wait(.5)
+            if type(FeatureConfig) == "table" and FeatureConfig["JoinLessFeature"].Enabled then
+                return
+            end
+            prints("Rejoining To Lobby")
+            TeleportService:Teleport(3260590327)
+        end)
+    end)
+    function DebugTower(Object) --Rework in 0.3.1
+        repeat task.wait() until tonumber(Object.Name)
+        local GuiInstance = Instance.new("BillboardGui")
+        GuiInstance.Parent = Object:WaitForChild("HumanoidRootPart")
+        GuiInstance.Adornee = Object:WaitForChild("HumanoidRootPart")
+        GuiInstance.StudsOffsetWorldSpace = Vector3.new(0, 2, 0)
+        GuiInstance.Size = UDim2.new(0, 250, 0, 50)
+        GuiInstance.AlwaysOnTop = true
+        local Text1 = Instance.new("TextLabel")
+        Text1.Parent = GuiInstance
+        Text1.BackgroundTransparency = 1
+        Text1.Text = Object.Name
+        Text1.Font = "Legacy"
+        Text1.Size = UDim2.new(1, 0, 0, 70)
+        Text1.TextSize = 52
+        Text1.TextScaled = fals
+        Text1.TextColor3 = Color3.new(0, 0, 0)
+        Text1.TextStrokeColor3 = Color3.new(0, 0, 0)
+        Text1.TextStrokeTransparency = 0.5
+        local Text2 = Instance.new("TextLabel")
+        Text2.Parent = GuiInstance
+        Text2.BackgroundTransparency = 1
+        Text2.Text = Object.Name
+        Text2.Font = "Legacy"
+        Text2.Size = UDim2.new(1, 0, 0, 70)
+        Text2.TextSize = 50
+        Text2.TextScaled = false
+        Text2.TextColor3 = Color3.new(1, 0, 0)
+        Text2.TextStrokeColor3 = Color3.new(0, 0, 0)
+        Text2.TextStrokeTransparency = 0.5
+    end
+end
 getgenv().PlayersSection = {}
 if not CheckPlace() then
     RemoteFunction:InvokeServer("Login", "Claim")
@@ -360,34 +587,7 @@ if not CheckPlace() then
     UI.MapFind = maintab:Section("Map: ")
     UI.CurrentPlayer = maintab:Section("Player Joined: 0")
 
-    UI.WebSetting = UtilitiesTab:DropSection("Webhook Settings")
-    local WebSetting = UI.WebSetting
-    WebSetting:Toggle("Enabled",{default = UtilitiesConfig.Webhook.Enabled or false, flag = "Enabled"})
-    WebSetting:Toggle("Use New Format",{default = UtilitiesConfig.Webhook.UseNewFormat or false, flag = "UseNewFormat"})
-    WebSetting:Section("Webhook Link:                             ")
-    WebSetting:TypeBox("Webhook Link",{default = UtilitiesConfig.Webhook.Link, cleartext = false, flag = "Link"})
-    if getgenv().FeatureConfig and getgenv().FeatureConfig.CustomLog then
-        WebSetting:Toggle("Disable SL's Custom Log",{default = UtilitiesConfig.Webhook.DisableCustomLog or false, flag = "DisableCustomLog"})
-    end
-    WebSetting:Toggle("Hide Username",{default = UtilitiesConfig.Webhook.HideUser or false, flag = "HideUser"})
-    WebSetting:Toggle("Player Info",{default = UtilitiesConfig.Webhook.PlayerInfo or false, flag = "PlayerInfo"})
-    WebSetting:Toggle("Game Info",{default = UtilitiesConfig.Webhook.GameInfo or false, flag = "GameInfo"})
-    WebSetting:Toggle("Troops Info",{default = UtilitiesConfig.Webhook.TroopsInfo or false, flag = "TroopsInfo"})
-
-    UtilitiesTab:Toggle("Low Graphics Mode",{default = UtilitiesConfig.LowGraphics or false ,flag = "LowGraphics"}, function(bool) 
-        StratXLibrary.LowGraphics(bool)
-    end)
-
-    UtilitiesTab:Toggle("Bypass Group Checking",{default = UtilitiesConfig.BypassGroup or false, flag = "BypassGroup"})
-    UtilitiesTab:Toggle("Auto Buy Missing Tower",{default = UtilitiesConfig.AutoBuyMissing or false, flag = "AutoBuyMissing"})
-
-    task.spawn(function()
-        while true do
-            SaveUtilitiesConfig()
-            task.wait(1)
-        end
-    end)
-    task.spawn(function()
+    --[[task.spawn(function()
         repeat task.wait(.3)
         until getgenv().StratCreditsAuthor ~= nil
         local multitab = UtilitiesTab:DropSection("Multiplayer: Off")
@@ -398,18 +598,90 @@ if not CheckPlace() then
                 getgenv().PlayersSection[v] = multitab:Section("")
             end
         end
-        if (type(getgenv().StratCreditsAuthor) == "string" and #getgenv().StratCreditsAuthor > 0) or type(getgenv().StratCreditsAuthor) == "number" then
-            UtilitiesTab:Section("==Strat Creators==")
-            UtilitiesTab:Section(tostring(getgenv().StratCreditsAuthor))
-        elseif type(getgenv().StratCreditsAuthor) == "table" then
-            for i,v in next, getgenv().StratCreditsAuthor do
-                if (type(v) == "string" and #v > 0) or type(v) == "number" then
-                    UtilitiesTab:Section(tostring(v))
-                end
-            end
-        end
+    end)]]
+end
+
+if CheckPlace() then
+    UtilitiesTab:Section("Game Settings")
+    UtilitiesTab:Toggle("Rejoin Lobby After Match",{default = true, location = StratXLibrary, flag = "RejoinLobby"})
+    UtilitiesTab:Button("Teleport Back To Platform",function()
+        LocalPlayer.Character:FindFirstChild("HumanoidRootPart").CFrame = StratXLibrary.PlatformPart.CFrame +  Vector3.new(0, 3.3, 0)
+    end)
+
+    local CamSetting = UtilitiesTab:DropSection("Camera Settings")
+    CamSetting:Button("Normal Camera",function()
+        getgenv().DefaultCam = 1
+        SaveUtilitiesConfig()
+        LocalPlayer.Character.Humanoid.PlatformStand = false
+        LocalPlayer.Character.HumanoidRootPart.Anchored = false
+        CurrentCamera.CameraSubject = LocalPlayer.Character.Humanoid
+        CurrentCamera.CameraType = "Follow"
+        LocalPlayer.DevCameraOcclusionMode = OldCameraOcclusionMode
+    end)
+    CamSetting:Button("Follow Enemies",function()
+        getgenv().DefaultCam = 2
+        SaveUtilitiesConfig()
+        LocalPlayer.Character.Humanoid.PlatformStand = true
+        LocalPlayer.Character.HumanoidRootPart.Anchored = true
+        LocalPlayer.DevCameraOcclusionMode = "Invisicam"
+        CurrentCamera.CameraType = "Follow"
+    end)
+    CamSetting:Button("Free Camera",function()
+        getgenv().DefaultCam = 3
+        SaveUtilitiesConfig()
+        LocalPlayer.Character.HumanoidRootPart.Anchored = true
+        LocalPlayer.Character.Humanoid.PlatformStand = true
+        CurrentCamera.CameraType = Enum.CameraType.Scriptable
+        LocalPlayer.DevCameraOcclusionMode = OldCameraOcclusionMode
     end)
 end
+
+UtilitiesTab:Section("Universal Settings")
+UI.WebSetting = UtilitiesTab:DropSection("Webhook Settings")
+local WebSetting = UI.WebSetting
+WebSetting:Toggle("Enabled",{default = UtilitiesConfig.Webhook.Enabled or false, flag = "Enabled"})
+WebSetting:Toggle("Use New Format",{default = UtilitiesConfig.Webhook.UseNewFormat or false, flag = "UseNewFormat"})
+WebSetting:Section("Webhook Link:                             ")
+WebSetting:TypeBox("Webhook Link",{default = UtilitiesConfig.Webhook.Link, cleartext = false, flag = "Link"})
+if getgenv().FeatureConfig and getgenv().FeatureConfig.CustomLog then
+    WebSetting:Toggle("Disable SL's Custom Log",{default = UtilitiesConfig.Webhook.DisableCustomLog or false, flag = "DisableCustomLog"})
+end
+WebSetting:Toggle("Hide Username",{default = UtilitiesConfig.Webhook.HideUser or false, flag = "HideUser"})
+WebSetting:Toggle("Player Info",{default = UtilitiesConfig.Webhook.PlayerInfo or false, flag = "PlayerInfo"})
+WebSetting:Toggle("Game Info",{default = UtilitiesConfig.Webhook.GameInfo or false, flag = "GameInfo"})
+WebSetting:Toggle("Troops Info",{default = UtilitiesConfig.Webhook.TroopsInfo or false, flag = "TroopsInfo"})
+
+UtilitiesTab:Toggle("Low Graphics Mode",{default = UtilitiesConfig.LowGraphics or false ,flag = "LowGraphics"}, function(bool) 
+    StratXLibrary.LowGraphics(bool)
+end)
+UtilitiesTab:Toggle("Bypass Group Checking",{default = UtilitiesConfig.BypassGroup or false, flag = "BypassGroup"})
+UtilitiesTab:Toggle("Auto Buy Missing Tower",{default = UtilitiesConfig.AutoBuyMissing or false, flag = "AutoBuyMissing"})
+UtilitiesTab:Button("Teleport To Lobby",function()
+    task.wait(.5)
+    TeleportService:Teleport(3260590327)
+end)
+task.spawn(function()
+    repeat task.wait(.3)
+    until getgenv().StratCreditsAuthor ~= nil
+    local multitab = UtilitiesTab:DropSection("Multiplayer: Off")
+    if getgenv().Mulitplayer.Enabled then
+        multitab:SetText("Multiplayer: On")
+        multitab:Section("Host:"..Players:GetNameFromUserIdAsync(getgenv().Mulitplayer.Host))
+        for i =1, getgenv().Mulitplayer.Players do
+            getgenv().PlayersSection[v] = multitab:Section("")
+        end
+    end
+    if (type(getgenv().StratCreditsAuthor) == "string" and #getgenv().StratCreditsAuthor > 0) or type(getgenv().StratCreditsAuthor) == "number" then
+        UtilitiesTab:Section("==Strat Creators==")
+        UtilitiesTab:Section(tostring(getgenv().StratCreditsAuthor))
+    elseif type(getgenv().StratCreditsAuthor) == "table" then
+        for i,v in next, getgenv().StratCreditsAuthor do
+            if (type(v) == "string" and #v > 0) or type(v) == "number" then
+                UtilitiesTab:Section(tostring(v))
+            end
+        end
+    end
+end)
 
 StratXLibrary.MapFunc = {
     Count = 0,
@@ -1085,7 +1357,15 @@ game:GetService("CoreGui").RobloxPromptGui.promptOverlay.ChildAdded:Connect(func
         TeleportService:Teleport(3260590327, LocalPlayer)
     end
 end)
+
+task.spawn(function()
+    while true do
+        SaveUtilitiesConfig()
+        task.wait(1)
+    end
+end)
 prints("Loaded Library")
 getgenv().StratXLibrary.Executed = true
-print(2)
+getgenv().StratXLibrary.ExecutedCount = 1
+StratXLibrary.Strat[StratXLibrary.ExecutedCount] = {}
 return StratXLibrary

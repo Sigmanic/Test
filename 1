@@ -1,0 +1,1091 @@
+--if getgenv().StratXLibrary and getgenv().StratXLibrary.Executed then return getgenv().StratXLibrary end
+getgenv().IsPlayerInGroup = getgenv().IsPlayerInGroup
+local Success
+task.spawn(function()
+    if getgenv().IsPlayerInGroup then
+        return
+    end
+    repeat task.wait() until game:GetService("Players").LocalPlayer
+    local Success = pcall(function()
+        getgenv().IsPlayerInGroup = game:GetService("Players").LocalPlayer:IsInGroup(4914494)
+    end)
+end)
+
+writefile("StratLoader/UserLogs/PrintLog.txt", "")
+getgenv().StratXLibrary = {}
+--StratXLibrary.MultiStratEnabled = getgenv().IsMultiStrat or false
+StratXLibrary.MultiStratEnabled = true
+getgenv().GameSpoof = "Lobby"
+StratXLibrary.Strat = {}
+
+if not StratXLibrary.UtilitiesConfig then
+    StratXLibrary.UtilitiesConfig = {  
+        Camera = tonumber(getgenv().DefaultCam) or 2,
+        LowGraphics = getgenv().PotatoPC or false,
+        BypassGroup = false,
+        AutoBuyMissing = false,
+        AutoPickups = false,
+        Webhook = {
+            Enabled = false,
+            Link = (isfile("TDS_AutoStrat/Webhook (Logs).txt") and readfile("TDS_AutoStrat/Webhook (Logs).txt")) or "",
+            HideUser = false,
+            UseNewFormat = false,
+            PlayerInfo = true,
+            GameInfo = true,
+            TroopsInfo = true,
+            DisableCustomLog = true,
+        },
+    }
+end
+
+if not game:IsLoaded() then
+    game["Loaded"]:Wait()
+end
+local SpoofEvent = {}
+if GameSpoof then
+    function SpoofEvent:InvokeServer(...)
+        print("InvokeServer",...)
+    end
+    function SpoofEvent:FireServer(...)
+        print("FireServer",...)
+    end
+end
+local Version = "Version: 0.3 [Alpha]"
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RemoteFunction = if not GameSpoof then ReplicatedStorage:WaitForChild("RemoteFunction") else SpoofEvent
+local RemoteEvent = if not GameSpoof then ReplicatedStorage:WaitForChild("RemoteEvent") else SpoofEvent
+local Lighting = game:GetService("Lighting")
+local TeleportService = game:GetService("TeleportService")
+local UserInputService = game:GetService("UserInputService")
+local Mouse = LocalPlayer:GetMouse()
+local CurrentCamera = Workspace.CurrentCamera
+local OldCameraOcclusionMode = LocalPlayer.DevCameraOcclusionMode
+local CountNum = 0
+local UILibrary = getgenv().UILibrary or loadstring(game:HttpGet("https://raw.githubusercontent.com/Sigmanic/ROBLOX/main/ModificationWallyUi", true))()
+StratXLibrary["TowersContained"] = {}
+getgenv().TowersContained = StratXLibrary["TowersContained"]
+StratXLibrary["ActionInfo"] = {
+    ["Place"] = {0,0},
+    ["Upgrade"] = {0,0},
+    ["Sell"] = {0,0},
+    ["Skip"] = {0,0},
+    ["Ability"] = {0,0},
+    ["Target"] = {0,0},
+    ["AutoChain"] = {0,0},
+    ["SellAllFarms"] = {0,0}, 
+}
+StratXLibrary.UI = {}
+local UI = StratXLibrary.UI
+local UtilitiesConfig = StratXLibrary.UtilitiesConfig
+
+--loadstring(game:HttpGet("https://raw.githubusercontent.com/Sigmanic/Strategies-X/main/ConvertFunc.lua", true))()
+local Patcher = loadstring(game:HttpGet("https://raw.githubusercontent.com/Sigmanic/Strategies-X/main/ConvertFunc.lua", true))()
+function ParametersPatch(name,...)
+    if type(...) == "table" and select("#",...) == 1 then
+        return ...
+    end
+    return Patcher[name](...)
+end
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Sigmanic/Strategies-X/main/ConsoleLibrary.lua", true))()
+
+function prints(...)
+    local TableText = {...}
+    for i,v in next, TableText do
+        if type(v) ~= "string" then
+            TableText[i] = tostring(v)
+        end
+    end
+    local Text = table.concat(TableText, " ")
+    appendfile("StratLoader/UserLogs/PrintLog.txt", Text.."\n")
+    --print(Text)
+    ConsoleInfo(Text)
+end
+getgenv().output = function(Text,Color)
+    ConsolePrint(Color,"Info",Text)
+end
+
+if isfile("StratLoader/UserConfig/UtilitiesConfig.txt") then
+    UtilitiesConfig = cloneref(game:GetService("HttpService")):JSONDecode(readfile("StratLoader/UserConfig/UtilitiesConfig.txt"))
+    if tonumber(getgenv().DefaultCam) and tonumber(getgenv().DefaultCam) <= 3 and tonumber(getgenv().DefaultCam) ~= UtilitiesConfig.Camera then
+        UtilitiesConfig.Camera = tonumber(getgenv().DefaultCam)
+    end
+    if getgenv().PotatoPC then
+        UtilitiesConfig.LowGraphics = true
+    end
+else
+    writefile("StratLoader/UserConfig/UtilitiesConfig.txt",cloneref(game:GetService("HttpService")):JSONEncode(UtilitiesConfig))
+end
+ConsolePrint("WHITE","Table",UtilitiesConfig)
+
+getgenv().MinimizeClient = getgenv().MinimizeClient or function(boolean)
+    local boolean = boolean or (boolean == nil and true)
+    if not getgenv().FirstTime then
+        getgenv().FirstTime = {
+            GlobalShadow = Lighting.GlobalShadows,
+            PhysicsThrottle = settings().Physics.PhysicsEnvironmentalThrottle,
+            OldQuality = settings():GetService("RenderSettings").QualityLevel,
+            TechLight = gethiddenproperty(Lighting, "Technology"),
+        }
+    end
+    if boolean then
+        pcall(function()
+            setfpscap(10)
+        end)
+        settings():GetService("RenderSettings").QualityLevel = Enum.QualityLevel.Level01
+        settings().Physics.PhysicsEnvironmentalThrottle = Enum.EnviromentalPhysicsThrottle.Disabled
+        if sethiddenproperty then
+            sethiddenproperty(Lighting, "Technology",Enum.Technology.Compatibility)
+        end
+        Lighting.GlobalShadows = boolean
+    else
+        pcall(function()
+            setfpscap(60)
+        end)
+        settings():GetService("RenderSettings").QualityLevel = getgenv().FirstTime.OldQuality
+        settings().Physics.PhysicsEnvironmentalThrottle = getgenv().FirstTime.PhysicsThrottle
+        if sethiddenproperty then
+            sethiddenproperty(Lighting, "Technology", getgenv().FirstTime.TechLight)
+        end
+        Lighting.GlobalShadows = getgenv().FirstTime.GlobalShadow
+    end
+    game:GetService("RunService"):Set3dRenderingEnabled(not boolean)
+    for i,v in next, Lighting:GetChildren() do
+        if v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("ColorCorrectionEffect") or v:IsA("BloomEffect") or v:IsA("DepthOfFieldEffect") and v.Enabled ~= not boolean then
+            v.Enabled = not boolean
+        end
+    end
+end
+
+function CheckPlace()
+    return (game.PlaceId == 5591597781)
+end
+
+local Folder = Instance.new("Folder")
+Folder.Parent = ReplicatedStorage
+Folder.Name = "Map"
+StratXLibrary.LowGraphics = function(bool)
+    if bool then
+        repeat task.wait() until LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character:FindFirstChild("Humanoid")
+        LocalPlayer.Character.Humanoid.PlatformStand = true
+        LocalPlayer.Character.HumanoidRootPart.Anchored = true
+        if CheckPlace() then
+            for i,v in next, Workspace.Map:GetChildren() do
+                if v.Name ~= "Paths" then
+                    v.Parent = Folder
+                end
+            end
+        else
+            for i,v in next, Workspace.Environment:GetChildren() do
+                v.Parent = Folder
+            end
+        end
+    else
+        if not (CheckPlace() and getgenv().DefaultCam ~= 1) then
+            repeat task.wait() until LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character:FindFirstChild("Humanoid")
+            LocalPlayer.Character.Humanoid.PlatformStand = false
+            LocalPlayer.Character.HumanoidRootPart.Anchored = false
+        end
+        for i,v in next, Folder:GetChildren() do
+            v.Parent = Workspace[CheckPlace() and "Map" or "Environment"]
+        end
+    end
+    MinimizeClient(bool)
+    prints((bool and "Enabled" or "Disabled").." Low Graphics Mode")
+end
+
+function SaveUtilitiesConfig()
+    local UtilitiesTab = UI.UtilitiesTab
+    local WebSetting = UI.WebSetting
+    StratXLibrary.UtilitiesConfig = {
+        Camera = tonumber(getgenv().DefaultCam) or 2,
+        LowGraphics = UtilitiesTab.flags.LowGraphics,
+        BypassGroup = UtilitiesTab.flags.BypassGroup,
+        AutoBuyMissing = UtilitiesTab.flags.AutoBuyMissing,
+        AutoPickups = UtilitiesTab.flags.AutoPickups,
+        Webhook = {
+            Enabled = WebSetting.flags.Enabled or false,
+            UseNewFormat = WebSetting.flags.UseNewFormat or false,
+            Link = (#WebSetting.flags.Link ~= 0 and WebSetting.flags.Link) or (isfile("TDS_AutoStrat/Webhook (Logs).txt") and readfile("TDS_AutoStrat/Webhook (Logs).txt")) or "",
+            HideUser = WebSetting.flags.HideUser or false,
+            PlayerInfo = WebSetting.flags.PlayerInfo or true,
+            GameInfo = WebSetting.flags.GameInfo or true,
+            TroopsInfo = WebSetting.flags.TroopsInfo or true,
+            DisableCustomLog = WebSetting.flags.DisableCustomLog or true,
+        },
+    }
+    UtilitiesConfig = StratXLibrary.UtilitiesConfig
+    writefile("StratLoader/UserConfig/UtilitiesConfig.txt",cloneref(game:GetService("HttpService")):JSONEncode(UtilitiesConfig))
+end
+
+local GameInfo
+getgenv().GetGameInfo = function()
+    if not CheckPlace() then
+        return
+    end
+    if GameInfo then
+        return GameInfo
+    end
+    repeat
+        for i,v in next, ReplicatedStorage.StateReplicators:GetChildren() do
+            if v:GetAttribute("TimeScale") then
+                GameInfo = v
+                return v
+            end
+        end
+        task.wait()
+    until GameInfo
+end
+local TimerCheck = false
+function CheckTimer(bool)
+    return (bool and TimerCheck) or true
+end
+function TimePrecise(Number)
+    --return math.round((math.ceil(Number) - Number)*1000)/1000 --more the decimal, long wait
+    return Number - math.floor(Number) - 0.13 --more the decimal, less wait, wtf is this mathematic
+end
+function TotalSec(Minute,Second)
+    return (Minute*60) + math.ceil(Second)
+end
+function TowersCheckHandler(...)
+    for i,v in next, {...} do
+        local Id = tonumber(v) or 0
+        local SkipTowerCheck
+        if not (TowersContained[Id] and typeof(TowersContained[Id].Instance) == "Instance") then
+            task.delay(25,function() --game has wave 0 now so increase it to make it works
+                SkipTowerCheck = true
+            end)
+            if not TowersContained[Id] then
+                ConsoleWarn("Tower Index: "..Id.." Hasn't Created Yet")
+                repeat task.wait() until TowersContained[Id] or SkipTowerCheck
+            end
+            if TowersContained[Id].Placed == false and not SkipTowerCheck then
+                ConsoleWarn("Tower Index: "..Id..", Type: \""..TowersContained[Id].TowerName.."\" Hasn't Been Placed Yet. Waiting It To Be Placed")
+                repeat task.wait() until (TowersContained[Id].Instance and TowersContained[Id].Placed) or SkipTowerCheck
+            end
+            if SkipTowerCheck then
+                ConsoleWarn("Can't Find Tower Index: "..Id..". Maybe Its Arguments Have Been Wrong?")
+            end
+        end
+    end
+end
+
+function GetTypeIndex(string,Id)
+    if (type(string) ~= "string" or (type(string) == "string" and #string == 0)) then
+        return TowersContained[Id].TypeIndex
+    end
+    return string
+end
+
+function TimeWaveWait(Wave,Min,Sec,InWave,Debug)
+    if Debug then
+        return
+    end
+    repeat 
+        task.wait() 
+    until tonumber(GetGameInfo():GetAttribute("Wave")) == Wave and CheckTimer(InWave)
+    local Timer = 0
+    repeat 
+        task.wait()
+        Timer = math.abs(ReplicatedStorage.State.Timer.Time.Value - TotalSec(Min,Sec))
+    until Timer <= 1
+    --until (ReplicatedStorage.State.Timer.Time.Value + 1 == TotalSec(Min,Sec) or ReplicatedStorage.State.Timer.Time.Value == TotalSec(Min,Sec)) --CheckTimer will return true when in wave and false when not in wave
+    task.wait(TimePrecise(Sec))
+end
+
+local maintab = UILibrary:CreateWindow("Strategies X")
+prints("Checking Group")
+getgenv().BypassGroup = false
+if not ((IsPlayerInGroup and CheckPlace()) or UtilitiesConfig.BypassGroup) then
+    if IsPlayerInGroup == nil then
+        task.spawn(function()
+            repeat task.wait() until Success ~= nil
+            if not Success then
+                maintab:Section("Checking Group Failed")
+                prints("Checking Group Failed")
+                maintab:Button("I Already Joined It", function()
+                    getgenv().BypassGroup = true
+                end)
+            end
+        end)
+        repeat task.wait() until IsPlayerInGroup ~= nil or getgenv().BypassGroup or UtilitiesConfig.BypassGroup
+        if getgenv().BypassGroup or UtilitiesConfig.BypassGroup then
+            return
+        end
+    end
+    if not IsPlayerInGroup then
+        maintab:Section("You Need To Join")
+        maintab:Section("Paradoxum Games Group")
+        local JoinButton = maintab:DropSection("Join The Group")
+        JoinButton:Button("Copy Link Group", function()
+            setclipboard("https://www.roblox.com/groups/4914494/Paradoxum-Games")
+        end)
+        JoinButton:Button("Yes, I Just Joined It", function()
+            getgenv().BypassGroup = true
+        end)
+        repeat task.wait() until getgenv().BypassGroup or UtilitiesConfig.BypassGroup
+    end
+end
+if UtilitiesConfig.BypassGroup then
+    prints("Bypassed Group Checking")
+else
+    prints("Checking Group Completed")
+end
+maintab:Section(Version)
+maintab:Section("Current Place: "..(CheckPlace() and "Ingame" or "Lobby"))
+
+UI.UtilitiesTab = UILibrary:CreateWindow("Utilities")
+local UtilitiesTab = UI.UtilitiesTab
+
+local CountNum = 0
+
+getgenv().PlayersSection = {}
+if not CheckPlace() then
+    RemoteFunction:InvokeServer("Login", "Claim")
+    RemoteFunction:InvokeServer("Session", "Search", "Login")
+
+    UI.EquipStatus = maintab:DropSection("Troops Loadout: Loading")
+    UI.TowersStatus = {
+        [1] = UI.EquipStatus:Section("Empty"),
+        [2] = UI.EquipStatus:Section("Empty"),
+        [3] = UI.EquipStatus:Section("Empty"),
+        [4] = UI.EquipStatus:Section("Empty"),
+        [5] = UI.EquipStatus:Section("Empty"),
+    }
+    maintab:Section("Elevator Status:")
+    UI.JoiningStatus = maintab:Section("Trying Elevator: 0")
+    UI.TimerLeft = maintab:Section("Time Left: 20")
+    UI.MapFind = maintab:Section("Map: ")
+    UI.CurrentPlayer = maintab:Section("Player Joined: 0")
+
+    UI.WebSetting = UtilitiesTab:DropSection("Webhook Settings")
+    local WebSetting = UI.WebSetting
+    WebSetting:Toggle("Enabled",{default = UtilitiesConfig.Webhook.Enabled or false, flag = "Enabled"})
+    WebSetting:Toggle("Use New Format",{default = UtilitiesConfig.Webhook.UseNewFormat or false, flag = "UseNewFormat"})
+    WebSetting:Section("Webhook Link:                             ")
+    WebSetting:TypeBox("Webhook Link",{default = UtilitiesConfig.Webhook.Link, cleartext = false, flag = "Link"})
+    if getgenv().FeatureConfig and getgenv().FeatureConfig.CustomLog then
+        WebSetting:Toggle("Disable SL's Custom Log",{default = UtilitiesConfig.Webhook.DisableCustomLog or false, flag = "DisableCustomLog"})
+    end
+    WebSetting:Toggle("Hide Username",{default = UtilitiesConfig.Webhook.HideUser or false, flag = "HideUser"})
+    WebSetting:Toggle("Player Info",{default = UtilitiesConfig.Webhook.PlayerInfo or false, flag = "PlayerInfo"})
+    WebSetting:Toggle("Game Info",{default = UtilitiesConfig.Webhook.GameInfo or false, flag = "GameInfo"})
+    WebSetting:Toggle("Troops Info",{default = UtilitiesConfig.Webhook.TroopsInfo or false, flag = "TroopsInfo"})
+
+    UtilitiesTab:Toggle("Low Graphics Mode",{default = UtilitiesConfig.LowGraphics or false ,flag = "LowGraphics"}, function(bool) 
+        StratXLibrary.LowGraphics(bool)
+    end)
+
+    UtilitiesTab:Toggle("Bypass Group Checking",{default = UtilitiesConfig.BypassGroup or false, flag = "BypassGroup"})
+    UtilitiesTab:Toggle("Auto Buy Missing Tower",{default = UtilitiesConfig.AutoBuyMissing or false, flag = "AutoBuyMissing"})
+
+    task.spawn(function()
+        while true do
+            SaveUtilitiesConfig()
+            task.wait(1)
+        end
+    end)
+    task.spawn(function()
+        repeat task.wait(.3)
+        until getgenv().StratCreditsAuthor ~= nil
+        local multitab = UtilitiesTab:DropSection("Multiplayer: Off")
+        if getgenv().Mulitplayer.Enabled then
+            multitab:SetText("Multiplayer: On")
+            multitab:Section("Host:"..Players:GetNameFromUserIdAsync(getgenv().Mulitplayer.Host))
+            for i =1, getgenv().Mulitplayer.Players do
+                getgenv().PlayersSection[v] = multitab:Section("")
+            end
+        end
+        if (type(getgenv().StratCreditsAuthor) == "string" and #getgenv().StratCreditsAuthor > 0) or type(getgenv().StratCreditsAuthor) == "number" then
+            UtilitiesTab:Section("==Strat Creators==")
+            UtilitiesTab:Section(tostring(getgenv().StratCreditsAuthor))
+        elseif type(getgenv().StratCreditsAuthor) == "table" then
+            for i,v in next, getgenv().StratCreditsAuthor do
+                if (type(v) == "string" and #v > 0) or type(v) == "number" then
+                    UtilitiesTab:Section(tostring(v))
+                end
+            end
+        end
+    end)
+end
+
+StratXLibrary.MapFunc = {
+    Count = 0,
+    JoiningCheck = false,
+    ChangeCheck = false,
+}
+local MapProps = StratXLibrary.MapFunc
+function StratXLibrary:Map(...)
+    local tableinfo = ParametersPatch("Map",...)
+    local Map = tableinfo["Map"]
+    local Solo = tableinfo["Solo"]
+    local Mode = tableinfo["Mode"]
+    local EquipTroops = tableinfo["EquipTroops"]
+    repeat task.wait() until LocalPlayer:FindFirstChild("Level")
+    if Mode == "Hardcore" and LocalPlayer.Level.Value < 50 then
+        LocalPlayer:Kick("This User Doesn't Have Require Level > 50")
+    end
+    task.spawn(function()
+        if CheckPlace() then
+            if not table.find(Map, ReplicatedStorage.State.Map.Value) then
+                TeleportService:Teleport(3260590327, LocalPlayer)
+                return
+            end
+            ConsoleInfo("Map Selected: "..ReplicatedStorage.State.Map.Value..", ".."Mode: "..Mode..", ".."Solo Only: "..tostring(Solo))
+            return
+        end
+        MapProps.Count = MapProps.Count + 1
+        local TempCount = MapProps.Count
+        local Elevators = {}
+        for i,v in next,Workspace.Elevators:GetChildren() do
+            if require(v.Settings).Type == Mode then
+                table.insert(Elevators,{
+                    ["Object"] = v,
+                    ["MapName"] = v.State.Map.Title,
+                    ["Time"] = v.State.Timer,
+                    ["Playing"] = v.State.Players
+                })
+            end
+        end
+        prints("Found",#Elevators,"Elevators")
+        local ConnectionEvent
+        local WaitTime = (#Elevators > 6 and 1) or 5.5
+        task.spawn(function()
+            while TempCount == MapProps.Count do
+                for i,v in next, Elevators do
+                    task.wait()
+                    if MapProps.JoiningCheck then
+                        repeat task.wait() until MapProps.JoiningCheck == false
+                    end
+                    if TempCount ~= MapProps.Count then
+                        return
+                    end
+                    if not table.find(Map,v["MapName"].Value) and v["Playing"].Value == 0 and not MapProps.JoiningCheck then
+                        MapProps.ChangeCheck = true
+                        prints("Changing Elevator",i)
+                        RemoteFunction:InvokeServer("Elevators", "Enter", v["Object"])
+                        task.wait(.9)
+                        RemoteFunction:InvokeServer("Elevators", "Leave")
+                        MapProps.ChangeCheck = false
+                    end
+                end
+                task.wait(WaitTime)
+            end
+        end)
+        while TempCount == MapProps.Count do
+            for i,v in next, Elevators do
+                if TempCount ~= MapProps.Count then
+                    return
+                end
+                UI.JoiningStatus.Text = "Trying Elevator: " ..tostring(i)
+                UI.MapFind.Text = "Map: "..v["MapName"].Value
+                UI.CurrentPlayer.Text = "Player Joined: "..v["Playing"].Value
+                prints("Trying elevator",i,"Map:","\""..v["MapName"].Value.."\"",", Player Joined:",v["Playing"].Value)
+                if table.find(Map,v["MapName"].Value) and v["Time"].Value > 5 and v["Playing"].Value < 4 then
+                    if Solo and v["Playing"].Value ~= 0 then
+                        continue
+                    end
+                    if MapProps.JoiningCheck or MapProps.ChangeCheck then
+                        repeat task.wait() until MapProps.JoiningCheck == false and MapProps.ChangeCheck == false
+                    end
+                    if TempCount ~= MapProps.Count then
+                        return
+                    end
+                    MapProps.JoiningCheck = true
+                    if EquipTroops and getgenv().Maps[v["MapName"].Value] then
+                        StratXLibrary:Loadout(unpack(getgenv().Maps[v["MapName"].Value]))
+                    end
+                    
+                    UI.JoiningStatus.Text = "Joined Elevator: " ..tostring(i)
+                    prints("Joined Elevator",i)
+                    RemoteFunction:InvokeServer("Elevators", "Enter", v["Object"])
+                    ConnectionEvent = v["Time"].Changed:Connect(function(numbertime)
+                        UI.MapFind.Text = "Map: "..v["MapName"].Value
+                        UI.CurrentPlayer.Text = "Player Joined: "..v["Playing"].Value
+                        UI.TimerLeft.Text = "Time Left: "..tostring(numbertime)
+                        prints("Time Left: ",numbertime)
+                        if not (LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character:FindFirstChild("Humanoid")) then
+                            print("Event Disconnected 3")
+                            ConnectionEvent:Disconnect()
+                            UI.JoiningStatus.Text = "Player Died. Rejoining Elevator"
+                            prints("Player Died. Rejoining Elevator")
+                            RemoteFunction:InvokeServer("Elevators", "Leave")
+                            UI.TimerLeft.Text = "Time Left: 20"
+                            repeat task.wait() until LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character:FindFirstChild("Humanoid")
+                            MapProps.JoiningCheck = false
+                        end
+                        if (numbertime > 0 and (not table.find(Map,v["MapName"].Value) or (Solo and v["Playing"].Value > 1))) or TempCount ~= MapProps.Count then
+                            print("Event Disconnected 1")
+                            ConnectionEvent:Disconnect()
+                            local Text = (not table.find(Map,v["MapName"].Value) and "Map Has Been Changed") or ((Solo and v["Playing"].Value > 1) and "Someone Has Joined") or (TempCount ~= MapProps.Count and "Cancel Joining Progress") or "Error"
+                            RemoteFunction:InvokeServer("Elevators", "Leave")
+                            
+                            UI.JoiningStatus.Text = Text..", Leaving Elevator "..tostring(i)
+                            prints(Text..", Leaving Elevator",i,"Map:","\""..v["MapName"].Value.."\"",", Player Joined:",v["Playing"].Value)
+                            UI.TimerLeft.Text = "Time Left: 20"
+                            MapProps.JoiningCheck = false
+                            return
+                        end
+                        if numbertime == 0 then
+                            print("Event Disconnected 2")
+                            ConnectionEvent:Disconnect()
+                            UI.JoiningStatus.Text = "Teleporting To A Match"
+                            task.wait(60)
+                            UI.JoiningStatus.Text = "Rejoining Elevator"
+                            prints("Rejoining Elevator")
+                            RemoteFunction:InvokeServer("Elevators", "Leave")
+                            UI.TimerLeft.Text = "Time Left: 20"
+                            MapProps.JoiningCheck = false
+                            return
+                        end
+                        RemoteFunction:InvokeServer("Elevators", "Enter", v["Object"])
+                    end)
+                    repeat task.wait() until MapProps.JoiningCheck == false
+                end
+                task.wait(.2)
+            end
+        end
+    end)
+end
+
+StratXLibrary.LoadoutFunc = {
+    Count = 0,
+}
+function StratXLibrary:Loadout(...)
+    local tableinfo = ParametersPatch("Loadout",...)
+    local TotalTowers = tableinfo["TotalTowers"]
+    local TroopsOwned = RemoteFunction:InvokeServer("Session", "Search", "Inventory.Troops")
+    StratXLibrary.LoadoutFunc.Count += 1
+    local TempCount = StratXLibrary.LoadoutFunc.Count
+    if CheckPlace() then
+        local TowerEquiped = {}
+        for i,v in next, TroopsOwned do
+            if v.Equipped then
+                table.insert(TowerEquiped, i)
+                if not table.find(TotalTowers, i) then
+                    TeleportService:Teleport(3260590327, LocalPlayer)
+                    return
+                end
+            end
+        end
+        if #TowerEquiped ~= #TotalTowers then
+            TeleportService:Teleport(3260590327, LocalPlayer)
+            return
+        end
+        ConsoleInfo("Loadout Selected: \""..table.concat(TotalTowers, "\", \"").."\"")
+        return
+    end
+    UI.EquipStatus:SetText("Troops Loadout: Equipping")
+
+    local Text = ""
+    for i,v in next, TotalTowers do
+        if v ~= "nil" and not TroopsOwned[v] then
+            Text = Text..v..", "
+        end
+    end
+    if #Text ~= 0 then
+        UI.EquipStatus:SetText("Troops Loadout: Missing")
+        repeat
+            local BoughtCheck = true
+            TroopsOwned = RemoteFunction:InvokeServer("Session", "Search", "Inventory.Troops")
+            if TempCount ~= StratXLibrary.LoadoutFunc.Count then
+                return
+            end
+            for i,v in next, string.split(Text,", ") do
+                if #v > 0 and v ~= "nil" and not TroopsOwned[v] then
+                    BoughtCheck = false
+                    if UtilitiesConfig.AutoBuyMissing then
+                        local BoughtCheck, BoughtMsg = RemoteFunction:InvokeServer("Shop", "Purchase", "tower",v)
+                        if BoughtCheck or (type(BoughtMsg) == "string" and string.find(BoughtMsg,"Player already has tower")) then
+                            UI.TowersStatus[i].Text = v..": Bought"
+                        else
+                            local TowerPriceStat = require(game:GetService("ReplicatedStorage").Content.Tower[v].Stats).Properties.Price
+                            local Price = tostring(TowerPriceStat.Value)
+                            local TypePrice = if tonumber(TowerPriceStat.Type) < 3 then "Coins" else "Gems"
+                            UI.TowersStatus[i].Text = v..": Need "..Price.." "..TypePrice
+                        end
+                    else
+                        UI.TowersStatus[i].Text = v..": Missing"
+                    end
+                end
+            end
+            task.wait(2)
+        until BoughtCheck
+    end
+
+    for i,v in next, TroopsOwned do
+        if v.Equipped then
+            RemoteEvent:FireServer("Inventory","Unequip","Tower",i)
+        end
+    end
+
+    for i,v in next, TotalTowers do
+        RemoteEvent:FireServer("Inventory", "Equip", "tower",v)
+        UI.TowersStatus[i].Text = (tableinfo[v][1] and "[Golden] " or "")..v
+        if TroopsOwned[v].GoldenPerks and tableinfo[v][1] == false then
+            RemoteEvent:FireServer("Inventory", "Unequip", "Golden", v)
+        elseif tableinfo[v][1] then
+            RemoteEvent:FireServer("Inventory", "Equip", "Golden", v)
+        end
+    end
+    UI.EquipStatus:SetText("Troops Loadout: Equipped")
+    ConsoleInfo("Loadout Selected: \""..table.concat(TotalTowers, "\", \"").."\"")
+end
+
+function StratXLibrary:Mode(Name)
+    if not CheckPlace() then
+        return
+    end
+    task.spawn(function()
+        local Mode
+        repeat
+            Mode = RemoteFunction:InvokeServer("Difficulty", "Vote", Name)
+            wait() 
+        until Mode
+        ConsoleInfo("Mode Selected: "..Name)
+    end)
+end
+--[[{
+    ["Type"] = "",
+    ["TypeIndex"] = ""
+    ["Position"] = Vector3.new(),
+    ["Rotation"] = CFrame.new(),
+    ["Wave"] = number,
+    ["Minute"] = number,
+    ["Second"] = number,
+    ["InBetween"] = boolean,
+}]]
+function SetActionInfo(String,Type)
+    task.spawn(function()
+        local ActionInfoTable = StratXLibrary["ActionInfo"]
+        local Current = ActionInfoTable[String][1]
+        local Total = ActionInfoTable[String][2]
+        local Type = Type or "Current"
+        if Type == "Total" then
+            Total += 1
+            ActionInfoTable[String][2] = Total
+        else
+            Current += 1
+            ActionInfoTable[String][1] = Current
+        end
+        if Total == 1 then
+            if not UI.ActInfo then
+                repeat task.wait() until UI.ActInfo
+            end
+            if not ActionInfoTable[String][3] then
+                ActionInfoTable[String][3] = UI.ActInfo:Section(String.." : 0 / 1")
+            end
+        elseif Total > 1 and not ActionInfoTable[String][3] then
+            repeat task.wait() until ActionInfoTable[String][3]
+        end
+        ActionInfoTable[String][3].Text = String.." : "..tostring(Current).." / "..tostring(Total)
+    end)
+end
+
+function StackPosition(Position)
+    local Position = if typeof(Position) == "Vector3" then Position else Vector3.new(0,0,0)
+    local PositionY = Position.Y
+    for i,v in next, TowersContained do
+        --if v.Position and v.Placed and (math.floor(v.Position.X) == math.floor(Position.X) and math.floor(v.Position.Z) == math.floor(Position.Z)) and (v.Position - Position).magnitude < 5 then (math.abs(v.Position.X - Position.X) < 1 and math.abs(v.Position.Z - Position.Z) < 1)
+        if v.Position and v.Placed and ((v.Position * Vector3.new(1,0,1) - Position * Vector3.new(1,0,1)).magnitude < 1) and (v.Position - Position).magnitude < 5 then
+            Position = Vector3.new(Position.X,v.Position.Y + 5, Position.Z)
+        end
+    end
+    return Vector3.new(0,Position.Y - PositionY,0)
+end
+
+
+function StratXLibrary:Place(...)
+    local tableinfo = ParametersPatch("Place",...)
+    local Tower = tableinfo["Type"]
+    local Position = tableinfo["Position"] or Vector3.new(0,0,0)
+    local Rotation = tableinfo["Rotation"] or CFrame.new(0,0,0)
+    local Wave,Min,Sec,InWave = tableinfo["Wave"] or 0, tableinfo["Minute"] or 0, tableinfo["Second"] or 0, tableinfo["InBetween"] or false 
+    if not CheckPlace() then
+        return
+    end
+    SetActionInfo("Place","Total")
+    task.spawn(function()
+        CountNum += 1
+        local TempNum = CountNum
+        TowersContained[TempNum] = {
+            ["TowerName"] = Tower,
+            ["Placed"] = false,
+            ["TypeIndex"] = "Nil",
+            ["Position"] = Position + StackPosition(Position),
+            ["Rotation"] = Rotation,
+            ["OldPosition"] = Position,
+            ["PassedTimer"] = false,
+        }
+        TimeWaveWait(Wave, Min, Sec, InWave, tableinfo["Debug"])
+        TowersContained[TempNum].PassedTimer = true
+        local CheckPlaced
+        task.delay(15, function()
+            if typeof(CheckPlaced) ~= "Instance" then
+                ConsoleError("Tower Index: "..TempNum..", Type: \""..Tower.."\" Hasn't Been Placed In The Last 15 Seconds. Check Again Its Arguments Or Order.")
+            end
+        end)
+        repeat
+            CheckPlaced = RemoteFunction:InvokeServer("Troops","Place",Tower,{
+                ["Position"] = TowersContained[TempNum].Position,
+                ["Rotation"] = TowersContained[TempNum].Rotation
+            })
+            task.wait()
+        until typeof(CheckPlaced) == "Instance" --return instance
+        CheckPlaced.Name = TempNum
+        local TowerTable = StratXLibrary.TowerInfo[Tower]
+        TowerTable[2] += 1
+        CheckPlaced:SetAttribute("TypeIndex", Tower.." "..tostring(TowerTable[2]))
+        TowerTable[1].Text = Tower.." : "..tostring(TowerTable[2])
+        TowersContained[TempNum].Instance = CheckPlaced
+        TowersContained[TempNum].TypeIndex = CheckPlaced:GetAttribute("TypeIndex")
+        TowersContained[TempNum].Placed = true
+        TowersContained[TempNum].Target = "First"
+        TowersContained[TempNum].Upgrade = 0
+        if getgenv().Debug then
+            task.spawn(DebugTower,TowersContained[TempNum].Instance)
+        end
+        local TowerType = GetTypeIndex(tableinfo["TypeIndex"],TempNum)
+        SetActionInfo("Place")
+        local StackingCheck = (TowersContained[TempNum].Position - TowersContained[TempNum].OldPosition).magnitude > 1
+        ConsoleInfo("Placed "..Tower.." Index: "..CheckPlaced.Name..", Type: \""..TowerType.."\", (Wave "..Wave..", Min: "..Min..", Sec: "..Sec..", InBetween: "..tostring(InWave)..")"..
+        if StackingCheck then ", Stacked Position" else ", Original Position")
+    end)
+end
+--[[{
+    ["TowerIndex"] = ""
+    ["TypeIndex"] = "",
+    ["UpgradeTo"] = number,
+    ["Wave"] = number,
+    ["Minute"] = number,
+    ["Second"] = number,
+}]]
+function StratXLibrary:Upgrade(...)
+    local tableinfo = ParametersPatch("Upgrade",...)
+    local Tower = tableinfo["TowerIndex"]
+    local Wave,Min,Sec,InWave = tableinfo["Wave"] or 0, tableinfo["Minute"] or 0, tableinfo["Second"] or 0, tableinfo["InBetween"] or false 
+    if not CheckPlace() then
+        return
+    end
+    SetActionInfo("Upgrade","Total")
+    task.spawn(function()
+        TimeWaveWait(Wave, Min, Sec, InWave, tableinfo["Debug"])
+        local SkipCheck = false
+        task.spawn(function()
+            task.wait(15)
+            SkipCheck = true
+        end)
+        local CheckUpgraded
+        TowersCheckHandler(Tower)
+        repeat
+            --pcall(function()
+            CheckUpgraded = RemoteFunction:InvokeServer("Troops","Upgrade","Set",{
+                ["Troop"] = TowersContained[Tower].Instance
+            })
+            task.wait()
+            --end)
+        until CheckUpgraded or SkipCheck
+        local TowerType = GetTypeIndex(tableinfo["TypeIndex"],Tower)
+        if SkipCheck and not CheckUpgraded then
+            ConsoleError("Failed To Upgrade Tower Index: "..Tower..", Type: \""..TowerType.."\", (Wave "..Wave..", Min: "..Min..", Sec: "..Sec..", InBetween: "..tostring(InWave)..") CheckUpgraded: "..tostring(CheckUpgraded)..", SkipCheck: "..tostring(SkipCheck))
+            return
+        end
+        SetActionInfo("Upgrade")
+        ConsoleInfo("Upgraded Tower Index: "..Tower..", Type: \""..TowerType.."\", (Wave "..Wave..", Min: "..Min..", Sec: "..Sec..", InBetween: "..tostring(InWave)..") CheckUpgraded: "..tostring(CheckUpgraded)..", SkipCheck: "..tostring(SkipCheck))
+    end)
+end
+
+--[[{
+    ["TowerIndex"] = "",
+    ["TypeIndex"] = "",
+    ["Wave"] = number,
+    ["Minute"] = number,
+    ["Second"] = number,
+}]]
+function StratXLibrary:Sell(...)
+    local tableinfo = ParametersPatch("Sell",...)
+    local Tower = tableinfo["TowerIndex"]
+    local Wave,Min,Sec,InWave = tableinfo["Wave"] or 0, tableinfo["Minute"] or 0, tableinfo["Second"] or 0, tableinfo["InBetween"] or false 
+    if not CheckPlace() then
+        return
+    end
+    for i = 1, #Tower do
+        SetActionInfo("Sell","Total")
+    end
+    task.spawn(function()
+        TimeWaveWait(Wave, Min, Sec, InWave, tableinfo["Debug"])
+        TowersCheckHandler(unpack(Tower))
+        for i,v in next, Tower do
+            task.spawn(function()
+                local CheckSold
+                repeat
+                    CheckSold = RemoteFunction:InvokeServer("Troops","Sell",{
+                        ["Troop"] = TowersContained[v].Instance
+                    })
+                    task.wait()
+                until CheckSold or not TowersContained[v].Instance:FindFirstChild("HumanoidRootPart")
+                local TowerType = GetTypeIndex(tableinfo["TypeIndex"],v)
+                SetActionInfo("Sell")
+                ConsoleInfo((not CheckSold and "Already " or "").."Sold Tower Index: "..v..", Type: \""..TowerType.."\", (Wave "..Wave..", Min: "..Min..", Sec: "..Sec..", InBetween: "..tostring(InWave)..")")
+            end)
+        end
+    end)
+end
+
+--[[{
+    ["Wave"] = number,
+    ["Minute"] = number,
+    ["Second"] = number,
+}]]
+function StratXLibrary:Skip(...)
+    local tableinfo = ParametersPatch("Skip",...)
+    local Wave,Min,Sec,InWave = tableinfo["Wave"] or 0, tableinfo["Minute"] or 0, tableinfo["Second"] or 0, tableinfo["InBetween"] or false 
+    if not CheckPlace() then
+        return
+    end
+    SetActionInfo("Skip","Total")
+    task.spawn(function()
+        TimeWaveWait(Wave, Min, Sec, InWave, tableinfo["Debug"])
+        RemoteFunction:InvokeServer("Voting", "Skip")
+        SetActionInfo("Skip")
+        ConsoleInfo("Skipped Wave "..Wave.." (Min: "..Min..", Sec: "..Sec..", InBetween: "..tostring(InWave)..")")
+    end)
+end
+
+--[[{
+    ["TowerIndex"] = "",
+    ["TypeIndex"] = "",
+    ["Ability"] = "",
+    ["Wave"] = number,
+    ["Minute"] = number,
+    ["Second"] = number,
+}]]
+function StratXLibrary:Ability(...)
+    local tableinfo = ParametersPatch("Ability",...)
+    local Tower = tableinfo["TowerIndex"]
+    local Ability = tableinfo["Ability"]
+    local Wave,Min,Sec,InWave = tableinfo["Wave"] or 0, tableinfo["Minute"] or 0, tableinfo["Second"] or 0, tableinfo["InBetween"] or false 
+    if not CheckPlace() then
+        return
+    end
+    SetActionInfo("Ability","Total")
+    task.spawn(function()
+        TimeWaveWait(Wave, Min, Sec, InWave, tableinfo["Debug"])
+        TowersCheckHandler(Tower)
+        if Ability == "Call Of Arms" and TowersContained[Tower].AutoChain then
+            local TowerType = GetTypeIndex(tableinfo["TypeIndex"],Tower)
+            SetActionInfo("Ability")
+            ConsoleInfo("Skipped Ability (AutoChain Enabled) On Tower Index: "..Tower..", Type: \""..TowerType.."\", (Wave "..Wave..", Min: "..Min..", Sec: "..Sec..", InBetween: "..tostring(InWave)..")")
+            return
+        end
+        RemoteFunction:InvokeServer("Troops","Abilities","Activate",{
+            ["Troop"] = TowersContained[Tower].Instance, 
+            ["Name"] = Ability
+        })
+        local TowerType = GetTypeIndex(tableinfo["TypeIndex"],Tower)
+        SetActionInfo("Ability")
+        ConsoleInfo("Used Ability On Tower Index: "..Tower..", Type: \""..TowerType.."\", (Wave "..Wave..", Min: "..Min..", Sec: "..Sec..", InBetween: "..tostring(InWave)..")")
+    end)
+end
+
+--[[{
+    ["TowerIndex"] = "",
+    ["TypeIndex"] = "",
+    ["Wave"] = number,
+    ["Minute"] = number,
+    ["Second"] = number,
+    ["Target"] = string,
+}]]
+function StratXLibrary:Target(...)
+    local tableinfo = ParametersPatch("Target",...)
+    local Tower = tableinfo["TowerIndex"]
+    local Wave,Min,Sec,InWave = tableinfo["Wave"] or 0, tableinfo["Minute"] or 0, tableinfo["Second"] or 0, tableinfo["InBetween"] or false 
+    local Target = tableinfo["Target"]
+    if not CheckPlace() then
+        return
+    end
+    SetActionInfo("Target","Total")
+    task.spawn(function()
+        TimeWaveWait(Wave, Min, Sec, InWave, tableinfo["Debug"])
+        TowersCheckHandler(Tower)
+        RemoteFunction:InvokeServer("Troops","Target","Set",{
+            ["Troop"] = TowersContained[Tower].Instance,
+            ["Target"] = Target,
+        })
+        local TowerType = GetTypeIndex(tableinfo["TypeIndex"],Tower)
+        SetActionInfo("Target")
+        ConsoleInfo("Changed Target To: "..Target..", Tower Index: "..Tower..", Type: \""..TowerType.."\", (Wave "..Wave..", Min: "..Min..", Sec: "..Sec..", InBetween: "..tostring(InWave)..")")
+    end)
+end
+
+local function Chain(Tower)
+    local Tower = TowersContained[Tower].Instance
+    if Tower and Tower:FindFirstChild("Replicator") and Tower:FindFirstChild("Replicator"):GetAttribute("Upgrade") >= 2 then
+        if Tower.Replicator.Stuns:GetAttribute("1") or Tower.Replicator.Stuns:GetAttribute("1") ~= false then
+            repeat task.wait() 
+            until not Tower.Replicator.Stuns:GetAttribute("1") or Tower.Replicator.Stuns:GetAttribute("1") == false or not Tower
+            if not Tower then
+                return
+            end
+        end
+        RemoteFunction:InvokeServer("Troops","Abilities","Activate",{["Troop"] = Tower ,["Name"] = "Call Of Arms"})
+        task.wait(10)
+    end
+end
+
+--[[{
+    ["TowerIndex1"] = "",
+    ["TowerIndex2"] = "",
+    ["TowerIndex3"] = "",
+    ["Wave"] = number,
+    ["Minute"] = number,
+    ["Second"] = number,
+}]]
+function StratXLibrary:AutoChain(...)
+    local tableinfo = ParametersPatch("AutoChain",...)
+    local Tower1,Tower2,Tower3 = tableinfo["TowerIndex1"], tableinfo["TowerIndex2"], tableinfo["TowerIndex3"]
+    local Wave,Min,Sec,InWave = tableinfo["Wave"] or 0, tableinfo["Minute"] or 0, tableinfo["Second"] or 0, tableinfo["InBetween"] or false 
+    if not CheckPlace() then
+        return
+    end
+    SetActionInfo("AutoChain","Total")
+    task.spawn(function()
+        TimeWaveWait(Wave, Min, Sec, InWave, tableinfo["Debug"])
+        TowersCheckHandler(Tower1,Tower2,Tower3)
+        TowersContained[Tower1].AutoChain = true
+        TowersContained[Tower2].AutoChain = true
+        TowersContained[Tower3].AutoChain = true
+        local TowerType = {
+            [Tower1] = TowersContained[Tower1].TypeIndex,
+            [Tower2] = TowersContained[Tower2].TypeIndex,
+            [Tower3] = TowersContained[Tower3].TypeIndex,
+        }
+        for i,v in next, TowerType do
+            if not v:match("Commander") then
+                ConsoleError("Troop Index: "..v.." Is Not A Commander!")
+                return
+            end
+        end
+        SetActionInfo("AutoChain")
+        ConsoleInfo("Enabled AutoChain For Towers Index: "..Tower1..", "..Tower2..", "..Tower3..", Types: \""..TowerType[Tower1].."\",  \""..TowerType[Tower2].."\", \""..TowerType[Tower3]..
+        "\" (Wave "..Wave..", Min: "..Min..", Sec: "..Sec..", InBetween: "..tostring(InWave)..")")
+        while true do
+            if not TowersContained[Tower1].Instance then
+                TowersContained[Tower1].AutoChain = false
+                ConsoleInfo("Disbaled AutoChain For Towers Index: "..Tower1..", "..Tower2..", "..Tower3)
+                break
+            end
+            Chain(Tower1)
+            if not TowersContained[Tower2].Instance then
+                TowersContained[Tower2].AutoChain = false
+                ConsoleInfo("Disbaled AutoChain For Towers Index: "..Tower1..", "..Tower2..", "..Tower3)
+                break
+            end
+            Chain(Tower2)
+            if not TowersContained[Tower3].Instance then
+                TowersContained[Tower3].AutoChain = false
+                ConsoleInfo("Disbaled AutoChain For Towers Index: "..Tower1..", "..Tower2..", "..Tower3)
+                break
+            end
+            Chain(Tower3)
+            task.wait()
+        end
+    end)
+end
+
+function StratXLibrary:SellAllFarms(...)
+    local tableinfo = ParametersPatch("SellAllFarms",...)
+    local Wave,Min,Sec,InWave = tableinfo["Wave"] or 0, tableinfo["Minute"] or 0, tableinfo["Second"] or 0, tableinfo["InBetween"] or false 
+    if not CheckPlace() then
+        return
+    end
+    SetActionInfo("SellAllFarms","Total")
+    task.spawn(function()
+        TimeWaveWait(Wave, Min, Sec, InWave, tableinfo["Debug"])
+        for i,v in next, Workspace.Towers:GetChildren() do
+            if v:FindFirstChild("Owner").Value == LocalPlayer.UserId and v.Replicator:GetAttribute("Type") == "Farm" then 
+                RemoteFunction:InvokeServer("Troops","Sell",{
+                    ["Troop"] = v
+                })
+            end
+        end
+        SetActionInfo("SellAllFarms")
+    end)
+end
+local function CheckTroop(TowerTable)
+    local TroopsOwned = RemoteFunction:InvokeServer("Session", "Search", "Inventory.Troops")
+    if not (type(TowerTable) == "table" and type(TroopsOwned) == "table") then
+        return ConsoleWarn("Cant Find Any Information About Towers To Equip Or Towers Owned")
+    end
+    local Text = ""
+    for i,v in next, TowerTable do
+        if v ~= "nil" and not TroopsOwned[v] then
+            Text = Text..v..", "
+        end
+    end
+    if #Text ~= 0 then
+        UI.EquipStatus:SetText("Troops Loadout: Missing")
+        repeat
+            local BoughtCheck = true
+            TroopsOwned = RemoteFunction:InvokeServer("Session", "Search", "Inventory.Troops")
+            for i,v in next, string.split(Text,", ") do
+                if #v > 0 and v ~= "nil" and not TroopsOwned[v] then
+                    BoughtCheck = false
+                    UI.TowersStatus[i].Text = v..": Missing"
+                end
+            end
+            task.wait(5)
+        until BoughtCheck
+    end
+end
+local function GetMapList(Table)
+    local MapList = {}
+    for i,v in next, Table do
+        table.insert(MapList,i)
+    end
+    return MapList
+end
+
+function StratXLibrary:LoadMultiStrat()
+    for i,v in next, getgenv().Maps do
+        if type(v) == "table" then
+            CheckTroop(v)
+        else
+            prints(i,"Doesn't Contained Any Information About Towers")
+            ConsoleError(i.."Doesn't Contained Any Information About Towers")
+        end
+    end
+    local MapList = maplist or GetMapList(getgenv().Maps)
+    getgenv().Maps["Mode"] = getgenv().MultiStratType or "Survival"
+    StratXLibrary:Map({
+        ["Map"] = MapList,
+        ["Solo"] = true,
+        ["Mode"] = getgenv().Maps["Mode"],
+        ["EquipTroops"] = true,
+    })
+end
+
+local GetConnects = getconnections or get_signal_cons
+if GetConnects then
+    for i,v in next, GetConnects(LocalPlayer.Idled) do
+        if v["Disable"] then
+            v["Disable"](v)
+        elseif v["Disconnect"] then
+            v["Disconnect"](v)
+        end
+    end
+end
+LocalPlayer.Idled:Connect(function()
+    game:GetService("VirtualUser"):ClickButton2(Vector2.new())
+end)
+game:GetService("CoreGui").RobloxPromptGui.promptOverlay.ChildAdded:Connect(function(object)
+    if object.Name == "ErrorPrompt" and object:FindFirstChild("MessageArea") and object.MessageArea:FindFirstChild("ErrorFrame") then
+        TeleportService:Teleport(3260590327, LocalPlayer)
+    end
+end)
+prints("Loaded Library")
+getgenv().StratXLibrary.Executed = true
+print(2)
+return StratXLibrary

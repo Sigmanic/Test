@@ -5,13 +5,13 @@ Trang này sử dụng [VitePress](https://vitepress.vuejs.org/) để tạo vă
 ## Mục Lục
 
 - [Tài Liệu Hướng Dẫn Cách Đóng Góp Fabric](#fabric-documentation-contribution-guidelines)
-  - [Cách Đóng Góp](#Cách-Đóng-Góp)
-  - [Đóng Góp Vào Bộ khung](#Đóng-Góp-Framework)
-  - [Đóng Góp Nội Dung](#Đóng-Góp-Nội-Dung)
+  - [Cách Đóng Góp](#cách-đóng-góp)
+  - [Đóng Góp Framework](#đóng-góp-framework)
+  - [Đóng Góp Nội Dung](#đóng-góp-nội-dung)
     - [Phong Cách Ghi Tài Liệu](#phong-cách-ghi-tài-liệu)
-    - [Hướng Dẫn Mở Rộng](#huong-dan-mo-rong)
-    - [Xác Minh Nội Dung](#content-verification)
-    - [Làm Gọn](#cleanup)
+    - [Hướng Dẫn Mở Rộng](#hướng-dẫn-mở-rộng)
+    - [Xác Minh Nội Dung](#xác-minh-nội-dung)
+    - [Làm Gọn](#làm-gọn)
 
 ## Cách Đóng Góp
 

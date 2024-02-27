@@ -51,7 +51,7 @@ Framework ám chỉ cấu trúc bên trong của một trang web, bất kì pull
 
 Bạn thật sự chỉ nên tạo các pull request về framework sau khi tham khảo ý kiến của đội ngũ biên soạn tài liệu trong [Discord Fabric](https://discord.gg/v6v4pMv) hoặc thông qua trang issue.
 
-**Chú ý: Việc chỉnh sửa các tập tin thanh bên và thanh định hướng không được tính là một pull request của bộ khung.**
+**Chú ý: Việc chỉnh sửa các tập tin thanh bên và thanh định hướng không được tính là một pull request của Framework.**
 
 ## Đóng Góp Nội Dung
 

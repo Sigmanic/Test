@@ -8,8 +8,8 @@ Trang này sử dụng [VitePress](https://vitepress.vuejs.org/) để tạo vă
   - [Cách Đóng Góp](#Cách-Đóng-Góp)
   - [Đóng Góp Vào Bộ khung](#Đóng-Góp-Framework)
   - [Đóng Góp Nội Dung](#Đóng-Góp-Nội-Dung)
-    - [Phong Cách Ghi Hướng Dẫn](#style-guidelines)
-    - [Hướng Dẫn Mở Rộng](#guidance-for-expansion)
+    - [Phong Cách Ghi Tài Liệu](#phong-cách-ghi-tài-liệu)
+    - [Hướng Dẫn Mở Rộng](#huong-dan-mo-rong)
     - [Xác Minh Nội Dung](#content-verification)
     - [Làm Gọn](#cleanup)
 

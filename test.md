@@ -4,7 +4,7 @@ Trang này sử dụng [VitePress](https://vitepress.vuejs.org/) để tạo vă
 
 ## Mục Lục
 
-- [Tài Liệu Hướng Dẫn Cách Đóng Góp Fabric](#fabric-documentation-contribution-guidelines)
+- [Tài Liệu Hướng Dẫn Cách Đóng Góp Fabric](#tài-liệu-hướng-dẫn-cách-đóng-góp-fabric)
   - [Cách Đóng Góp](#cách-đóng-góp)
   - [Đóng Góp Framework](#đóng-góp-framework)
   - [Đóng Góp Nội Dung](#đóng-góp-nội-dung)
